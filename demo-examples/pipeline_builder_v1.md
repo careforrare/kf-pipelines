@@ -1,9 +1,35 @@
 # About this Jupyter Notebook
 
+@author: Yingding Wang
+
+### Useful JupyterLab Basic
+
+Before start, you may consider to update the jupyterlab with the command
+
+<code>python
+!{sys.executable} -m pip install --upgrade --user jupyterlab    
+</code>  
+
+1. Autocomplete syntax with "Tab"
+2. View Doc String with "Shift + Tab"
+3. mark the code snippet -> select with right mouse -> Show Contextual Help (see the function code)
+
 
 ```python
 import sys
 print(f"Sys version: {sys.version}")
+```
+
+
+```python
+!{sys.executable} -m pip show jupyterlab # 3.0.16
+# !{sys.executable} -m pip show jupyter_contrib_nbextensions
+```
+
+
+```python
+# update the jupyter lab
+#!{sys.executable} -m pip install --upgrade --user jupyterlab
 ```
 
 # Install kfp to build a pipeline
@@ -64,8 +90,9 @@ https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.components.html
 ```python
 add_op = components.create_component_from_func(
     add,
+    output_component_file='add_component.yaml',
     base_image=BASE_IMAGE,
-    output_component_file='add_component.yaml' 
+    packages_to_install=None  
 )
 ```
 
@@ -81,9 +108,11 @@ https://github.com/kubeflow/pipelines/pull/5695
 
 
 ```python
-def pod_defaults(op):
-    op.set_memory_request('100Mi');# op.set_memory_limit('1000Mi')
-    op.set_cpu_request('100m'); # 1 core, # op.set_cpu_limit('1000m')
+def pod_defaults_transformer(op: dsl.ContainerOp):
+    op.set_memory_request('100Mi') # op.set_memory_limit('1000Mi')
+    op.set_memory_limit('100Mi')
+    op.set_cpu_request('100m') # 1 core, # op.set_cpu_limit('1000m')
+    op.set_cpu_limit('1000m') 
     return op
 ```
 
@@ -98,10 +127,10 @@ def calc_pipeline(
    b: float =7
 ):
     # Passing pipeline parameter and a constant value as operation arguments
-    # first_add_task = add_op(a, 4)
-    first_add_task = pod_defaults(add_op(a, 4))
-    # second_add_task = add_op(first_add_task.output, b)
-    second_add_task = pod_defaults(add_op(first_add_task.output, b))
+    first_add_task = add_op(a, 4)
+    # first_add_task = pod_defaults(add_op(a, 4))
+    second_add_task = add_op(first_add_task.output, b)
+    # second_add_task = pod_defaults(add_op(first_add_task.output, b))
 ```
 
 # Multi-user Isolation for Pipelines
@@ -124,7 +153,15 @@ exp = client.create_experiment(EXPERIMENT_NAME, description=EXPERIMENT_DESC, nam
 # Specify pipeline argument values
 arguments = {'a': '7', 'b': '8'}
 
-client.create_run_from_pipeline_func(calc_pipeline, arguments=arguments, experiment_name=exp.name)
+# added a default pod transformer to all the pipeline ops
+pl_conf: dsl.PipelineConf = dsl.PipelineConf()
+pl_conf.add_op_transformer(
+    pod_defaults_transformer
+)
+
+client.create_run_from_pipeline_func(pipeline_func=calc_pipeline, arguments=arguments,
+                                     experiment_name=exp.name, namespace=NAME_SPACE,
+                                     pipeline_conf=pl_conf)
 # The generated links below lead to the Experiment page and the pipeline run details page, respectively
 ```
 
