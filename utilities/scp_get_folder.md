@@ -30,15 +30,15 @@ from scp import SCPClient
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(override=True)
 ```
 
 
 ```python
 # debug .env file with
-#print(os.environ["SSH_HOST"])
-#print(os.environ["SSH_USER"])
-#print(os.environ["SSH_PW"])
+print(os.environ["SSH_HOST"])
+print(os.environ["SSH_USER"])
+print(os.environ["SSH_PW"])
 ```
 
 ### Add HostKey without varification in a private network

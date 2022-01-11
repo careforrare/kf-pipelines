@@ -20,6 +20,10 @@ import sys
 print(f"Sys version: {sys.version}")
 ```
 
+    Sys version: 3.8.10 | packaged by conda-forge | (default, May 11 2021, 07:01:05) 
+    [GCC 9.3.0]
+
+
 
 ```python
 !{sys.executable} -m pip show jupyterlab # 3.0.16
@@ -31,9 +35,6 @@ print(f"Sys version: {sys.version}")
 # update the jupyter lab
 #!{sys.executable} -m pip install --upgrade --user jupyterlab
 ```
-
-# Install kfp to build a pipeline
-Reference: https://www.kubeflow.org/docs/components/pipelines/sdk/build-pipeline/
 
 
 ```python
@@ -106,6 +107,18 @@ https://github.com/kubeflow/pipelines/pull/5695
 !kubectl describe quota
 ```
 
+    Name:                                                         kf-resource-quota
+    Namespace:                                                    kubeflow-kindfor
+    Resource                                                      Used    Hard
+    --------                                                      ----    ----
+    basic-csi.storageclass.storage.k8s.io/persistentvolumeclaims  3       5
+    basic-csi.storageclass.storage.k8s.io/requests.storage        15Gi    50Gi
+    cpu                                                           2010m   128
+    longhorn.storageclass.storage.k8s.io/persistentvolumeclaims   0       10
+    longhorn.storageclass.storage.k8s.io/requests.storage         0       500Gi
+    memory                                                        2088Mi  512Gi
+
+
 
 ```python
 def pod_defaults_transformer(op: dsl.ContainerOp):
@@ -149,6 +162,10 @@ exp = client.create_experiment(EXPERIMENT_NAME, description=EXPERIMENT_DESC, nam
 ```
 
 
+<a href="/pipeline/#/experiments/details/c72bc5aa-4c35-4b18-aaa7-ff459d893795" target="_blank" >Experiment details</a>.
+
+
+
 ```python
 # Specify pipeline argument values
 arguments = {'a': '7', 'b': '8'}
@@ -164,6 +181,21 @@ client.create_run_from_pipeline_func(pipeline_func=calc_pipeline, arguments=argu
                                      pipeline_conf=pl_conf)
 # The generated links below lead to the Experiment page and the pipeline run details page, respectively
 ```
+
+
+<a href="/pipeline/#/experiments/details/c72bc5aa-4c35-4b18-aaa7-ff459d893795" target="_blank" >Experiment details</a>.
+
+
+
+<a href="/pipeline/#/runs/details/954d9f14-ad42-41d2-a3ac-a5cc37a27a01" target="_blank" >Run details</a>.
+
+
+
+
+
+    RunPipelineResult(run_id=954d9f14-ad42-41d2-a3ac-a5cc37a27a01)
+
+
 
 
 ```python
