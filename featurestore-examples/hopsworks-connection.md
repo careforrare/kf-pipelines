@@ -16,9 +16,9 @@ Reference:
 
 #### 1. In the console create a conda venv names hops
 ```console
-conda install -y gcc=11.2.0
 conda create -y -n hops 
 conda activate hops
+conda install -y gcc=11.2.0
 conda install -y pip
 pip install --no-cache-dir --upgrade hsfs[hive]==2.4.7
 conda deactivate
@@ -39,6 +39,10 @@ conda deactivate
 ```
 Reference:
 * https://stackoverflow.com/questions/53004311/how-to-add-conda-environment-to-jupyter-lab/53546634#53546634
+
+**WARNING:**
+
+In the KubeFlow Notebook, after every time Notebook Server restart, the path `/opt/conda/envs` will be cleared. You notebook venv kernel will not work after Notebook Server restart.
 
 #### 3. Restart notebooks with new kernel hops
 
@@ -65,17 +69,20 @@ import sys
 print(f"Sys version: {sys.version}")
 ```
 
-    Sys version: 3.10.0 | packaged by conda-forge | (default, Nov 20 2021, 02:24:10) [GCC 9.4.0]
+    Sys version: 3.10.1 | packaged by conda-forge | (main, Dec 22 2021, 01:39:36) [GCC 9.4.0]
 
 
 
 ```python
 # This kernel runs with pip
-!{sys.executable} -m pip install python-dotenv
 # !{sys.executable} -m pip install hsfs[hive]==2.4.7
+!{sys.executable} -m pip install python-dotenv
 ```
 
-    Requirement already satisfied: python-dotenv in /opt/conda/envs/hops/lib/python3.10/site-packages (0.19.2)
+    Collecting python-dotenv
+      Using cached python_dotenv-0.19.2-py2.py3-none-any.whl (17 kB)
+    Installing collected packages: python-dotenv
+    Successfully installed python-dotenv-0.19.2
 
 
 ### (Optional) Uncomment the following cell to create a key file for featurestore
