@@ -131,3 +131,7 @@ dmypy.json
 # all custom .env and .key file
 *.env
 *.key
+
+# No .yaml file
+# *.yaml
+# .yml
