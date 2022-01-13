@@ -133,5 +133,5 @@ dmypy.json
 *.key
 
 # No .yaml file
-# *.yaml
-# .yml
+*.yaml
+.yml
