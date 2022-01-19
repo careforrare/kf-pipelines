@@ -25,7 +25,7 @@ Before start, you may consider to update the jupyterlab with the command
 
 ```python
 # upgrade jupyter lab
-!{sys.executable} -m pip install --upgrade --user jupyterlab==3.2.7
+!{sys.executable} -m pip install --upgrade --user jupyterlab==3.2.8
 ```
 
 ## Restart this notebook server

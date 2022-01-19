@@ -30,6 +30,18 @@ print(f"Sys version: {sys.version}")
 # !{sys.executable} -m pip show jupyter_contrib_nbextensions
 ```
 
+    Name: jupyterlab
+    Version: 3.2.7
+    Summary: JupyterLab computational environment
+    Home-page: https://jupyter.org
+    Author: Jupyter Development Team
+    Author-email: jupyter@googlegroups.com
+    License: UNKNOWN
+    Location: /home/jovyan/.local/lib/python3.8/site-packages
+    Requires: nbclassic, packaging, tornado, jupyter-core, ipython, jupyter-server, jinja2, jupyterlab-server
+    Required-by: 
+
+
 
 ```python
 # update the jupyter lab
@@ -39,7 +51,7 @@ print(f"Sys version: {sys.version}")
 
 ```python
 import sys
-!{sys.executable} -m pip install kfp --upgrade
+!{sys.executable} -m pip install --upgrade --user kfp
 ```
 
 # Restart the kernal
@@ -76,6 +88,14 @@ import kfp.components as components
 
 
 ```python
+print(kfp.__version__)
+```
+
+    1.8.10
+
+
+
+```python
 def add(a: float, b: float) -> float:
     '''Calculates sum of two arguments'''
     print(a, '+', b, '=', a + b)
@@ -106,18 +126,6 @@ https://github.com/kubeflow/pipelines/pull/5695
 # run command line to see the quota
 !kubectl describe quota
 ```
-
-    Name:                                                         kf-resource-quota
-    Namespace:                                                    kubeflow-kindfor
-    Resource                                                      Used    Hard
-    --------                                                      ----    ----
-    basic-csi.storageclass.storage.k8s.io/persistentvolumeclaims  3       5
-    basic-csi.storageclass.storage.k8s.io/requests.storage        15Gi    50Gi
-    cpu                                                           2010m   128
-    longhorn.storageclass.storage.k8s.io/persistentvolumeclaims   0       10
-    longhorn.storageclass.storage.k8s.io/requests.storage         0       500Gi
-    memory                                                        2088Mi  512Gi
-
 
 
 ```python
