@@ -16,8 +16,17 @@ Before start, you may consider to update the jupyterlab with the command
 
 
 ```python
-import sys
+# import sys, os
+# %env
+```
+
+
+```python
+import sys, os
 print(f"Sys version: {sys.version}")
+
+# os.environ["KF_PIPELINES_SA_TOKEN_PATH"]="/var/run/secrets/kubernetes.io/serviceaccount/token"
+# os.environ["KF_PIPELINES_SA_TOKEN_PATH"]="/var/run/secrets/kubeflow/pipelines/token"
 ```
 
     Sys version: 3.8.10 | packaged by conda-forge | (default, May 11 2021, 07:01:05) 
@@ -31,14 +40,14 @@ print(f"Sys version: {sys.version}")
 ```
 
     Name: jupyterlab
-    Version: 3.2.7
+    Version: 3.2.8
     Summary: JupyterLab computational environment
     Home-page: https://jupyter.org
     Author: Jupyter Development Team
     Author-email: jupyter@googlegroups.com
     License: UNKNOWN
     Location: /home/jovyan/.local/lib/python3.8/site-packages
-    Requires: nbclassic, packaging, tornado, jupyter-core, ipython, jupyter-server, jinja2, jupyterlab-server
+    Requires: ipython, packaging, jupyter-server, jinja2, tornado, jupyter-core, jupyterlab-server, nbclassic
     Required-by: 
 
 
@@ -50,14 +59,62 @@ print(f"Sys version: {sys.version}")
 
 
 ```python
+"""upgrade the kfp server api version to 1.7.0 for KF 1.4"""
+# !{sys.executable} -m pip uninstall -y kfp-server-api
+# !{sys.executable} -m pip install --user --upgrade kfp-server-api==1.7.0
+```
+
+
+
+
+    'upgrade the kfp server api version to 1.7.0 for KF 1.4'
+
+
+
+
+```python
 import sys
-!{sys.executable} -m pip install --upgrade --user kfp
+!{sys.executable} -m pip install --upgrade --user kfp==1.8.12
+!{sys.executable} -m pip install --upgrade --user kubernetes==18.20.0
+#!{sys.executable} -m pip install --upgrade --user kubernetes==21.7.0
 ```
 
 # Restart the kernal
 After update the kfp, restart this notebook kernel
 
 Jupyter notebook: Meun -> Kernel -> restart kernel
+
+## Check the KubeFlow Pipeline version on the server side
+
+
+```python
+!{sys.executable} -m pip list | grep kfp
+```
+
+    kfp                          1.8.12
+    kfp-pipeline-spec            0.1.14
+    kfp-server-api               1.7.0
+
+
+### Check my KubeFlow namespace total resource limits
+
+
+```python
+# run command line to see the quota
+!kubectl describe quota
+```
+
+    Name:                                                         kf-resource-quota
+    Namespace:                                                    kubeflow-kindfor
+    Resource                                                      Used    Hard
+    --------                                                      ----    ----
+    basic-csi.storageclass.storage.k8s.io/persistentvolumeclaims  3       5
+    basic-csi.storageclass.storage.k8s.io/requests.storage        11Gi    50Gi
+    cpu                                                           2110m   128
+    longhorn.storageclass.storage.k8s.io/persistentvolumeclaims   0       10
+    longhorn.storageclass.storage.k8s.io/requests.storage         0       500Gi
+    memory                                                        2108Mi  512Gi
+
 
 ## Setup
 Example Pipeline from
@@ -74,24 +131,32 @@ from platform import python_version
 
 EXPERIMENT_NAME = 'core kf test'        # Name of the experiment in the UI
 EXPERIMENT_DESC = 'testing KF platform'
-BASE_IMAGE = f"library/python:{python_version()}" # Base image used for components in the pipeline
-NAME_SPACE = 'kubeflow-kindfor'
+# BASE_IMAGE = f"library/python:{python_version()}" # Base image used for components in the pipeline, which has not root
+BASE_IMAGE = "python:3.8.13"
+NAME_SPACE = "kubeflow-kindfor" # change namespace if necessary
 ```
 
 
 ```python
 import kfp
+import kubernetes
 import kfp.dsl as dsl
 import kfp.compiler as compiler
 import kfp.components as components
 ```
 
+## Connecting KFP Python SDK from Notebook to Pipeline
+
+* https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/
+
 
 ```python
 print(kfp.__version__)
+print(kubernetes.__version__)
 ```
 
-    1.8.10
+    1.8.12
+    18.20.0
 
 
 
@@ -109,6 +174,7 @@ https://kubeflow-pipelines.readthedocs.io/en/latest/source/kfp.components.html
 
 
 ```python
+# returns a task factory function
 add_op = components.create_component_from_func(
     add,
     output_component_file='add_component.yaml',
@@ -123,18 +189,34 @@ https://github.com/kubeflow/pipelines/pull/5695
 
 
 ```python
-# run command line to see the quota
-!kubectl describe quota
-```
-
-
-```python
+'''
 def pod_defaults_transformer(op: dsl.ContainerOp):
     op.set_memory_request('100Mi') # op.set_memory_limit('1000Mi')
     op.set_memory_limit('100Mi')
     op.set_cpu_request('100m') # 1 core, # op.set_cpu_limit('1000m')
     op.set_cpu_limit('1000m') 
     return op
+'''
+```
+
+
+
+
+    "\ndef pod_defaults_transformer(op: dsl.ContainerOp):\n    op.set_memory_request('100Mi') # op.set_memory_limit('1000Mi')\n    op.set_memory_limit('100Mi')\n    op.set_cpu_request('100m') # 1 core, # op.set_cpu_limit('1000m')\n    op.set_cpu_limit('1000m') \n    return op\n"
+
+
+
+
+```python
+def pod_defaults_transformer(op: dsl.ContainerOp):
+    """
+    op.set_memory_limit('1000Mi') = 1GB
+    op.set_cpu_limit('1000m') = 1 cpu core
+    """
+    return op.set_memory_request('200Mi')\
+            .set_memory_limit('1000Mi')\
+            .set_cpu_request('2000m')\
+            .set_cpu_limit('2000m')
 ```
 
 
@@ -148,13 +230,25 @@ def calc_pipeline(
    b: float =7
 ):
     # Passing pipeline parameter and a constant value as operation arguments
-    first_add_task = add_op(a, 4)
-    # first_add_task = pod_defaults(add_op(a, 4))
-    second_add_task = add_op(first_add_task.output, b)
-    # second_add_task = pod_defaults(add_op(first_add_task.output, b))
+    # first_add_task = add_op(a, 4)
+    first_add_task = pod_defaults_transformer(add_op(a, 4))
+    # no value taken from cache
+    first_add_task.execution_options.caching_strategy.max_cache_staleness = "P0D"
+    # second_add_task = add_op(first_add_task.output, b)
+    second_add_task = pod_defaults_transformer(add_op(first_add_task.output, b))
+    # no cache 
+    second_add_task.execution_options.caching_strategy.max_cache_staleness = "P0D"
 ```
 
-# Multi-user Isolation for Pipelines
+### (optional step) Compile the pipeline to see the settings
+
+
+```python
+PIPE_LINE_FILE_NAME="calc_pipeline_with_resource_limit"
+kfp.compiler.Compiler().compile(calc_pipeline, f"{PIPE_LINE_FILE_NAME}.yaml")
+```
+
+# Run Pipeline with Multi-user Isolation
 
 https://www.kubeflow.org/docs/components/pipelines/multi-user/
 
@@ -162,11 +256,30 @@ https://www.kubeflow.org/docs/components/pipelines/multi-user/
 ```python
 # get the pipeline host from env set up be the notebook instance
 client = kfp.Client()
+
+# Make sure the volume is mounted /run/secrets/kubeflow/pipelines 
+# client.get_experiment(experiment_name=EXPERIMENT_NAME, namespace=NAME_SPACE)
 ```
 
 
 ```python
-exp = client.create_experiment(EXPERIMENT_NAME, description=EXPERIMENT_DESC, namespace=NAME_SPACE )
+# client.list_pipelines()
+```
+
+
+```python
+# print(NAME_SPACE)
+# client.list_experiments(namespace=NAME_SPACE)
+client.set_user_namespace(NAME_SPACE)
+print(client.get_user_namespace())
+```
+
+    kubeflow-kindfor
+
+
+
+```python
+exp = client.create_experiment(EXPERIMENT_NAME, description=EXPERIMENT_DESC)
 ```
 
 
@@ -179,14 +292,15 @@ exp = client.create_experiment(EXPERIMENT_NAME, description=EXPERIMENT_DESC, nam
 arguments = {'a': '7', 'b': '8'}
 
 # added a default pod transformer to all the pipeline ops
-pl_conf: dsl.PipelineConf = dsl.PipelineConf()
-pl_conf.add_op_transformer(
-    pod_defaults_transformer
-)
+pipeline_config: dsl.PipelineConf = dsl.PipelineConf()
+
+#pipeline_config.add_op_transformer(
+#    pod_defaults_transformer
+#)
 
 client.create_run_from_pipeline_func(pipeline_func=calc_pipeline, arguments=arguments,
-                                     experiment_name=exp.name, namespace=NAME_SPACE,
-                                     pipeline_conf=pl_conf)
+                                     experiment_name=EXPERIMENT_NAME, namespace=NAME_SPACE,
+                                     pipeline_conf=pipeline_config)
 # The generated links below lead to the Experiment page and the pipeline run details page, respectively
 ```
 
@@ -195,13 +309,13 @@ client.create_run_from_pipeline_func(pipeline_func=calc_pipeline, arguments=argu
 
 
 
-<a href="/pipeline/#/runs/details/954d9f14-ad42-41d2-a3ac-a5cc37a27a01" target="_blank" >Run details</a>.
+<a href="/pipeline/#/runs/details/33f61e72-c1d2-45de-8e4a-2bbf39843af0" target="_blank" >Run details</a>.
 
 
 
 
 
-    RunPipelineResult(run_id=954d9f14-ad42-41d2-a3ac-a5cc37a27a01)
+    RunPipelineResult(run_id=33f61e72-c1d2-45de-8e4a-2bbf39843af0)
 
 
 
